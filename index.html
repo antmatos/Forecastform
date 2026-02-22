@@ -155,11 +155,19 @@
       align-items: flex-start;
       justify-content: center;
       gap: 0.5rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
     }
 
     .temp { font-size: 5rem; font-weight: 900; color: var(--text); line-height: 1; }
     .temp-unit { font-size: 1.4rem; color: var(--soft); font-weight: 700; margin-top: 0.6rem; }
+
+    .temp-high {
+      font-size: 0.85rem;
+      color: var(--soft);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
 
     .summary {
       font-size: 1.1rem;
@@ -184,6 +192,40 @@
     .stat-icon  { font-size: 1.4rem; }
     .stat-value { font-size: 1rem; font-weight: 800; color: var(--text); }
     .stat-label { font-size: 0.7rem; color: var(--soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .sun-row {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 0.85rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--bg);
+      border-radius: 1.2rem;
+      transition: background 0.4s;
+    }
+
+    .sun-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sun-item svg { flex-shrink: 0; }
+
+    .sun-time {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .sun-label {
+      font-size: 0.65rem;
+      color: var(--soft);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: block;
+    }
 
     .loading, .error { font-size: 1rem; color: var(--soft); font-weight: 600; padding: 2rem 0; }
     .error { color: #e53935; }
@@ -232,18 +274,6 @@
   </div>
   <div class="last-updated" id="lastUpdated"></div>
 </div>
-
-<!-- Spotify embed -->
-<iframe
-        src="https://open.spotify.com/embed/album/2x9y5NDF924jWDNtHxKPyx?utm_source=generator&theme=0"
-        width="100%"
-        height="152"
-        frameborder="0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-        style="border-radius: 12px; margin-top: 1.5rem; max-width: 420px; display: block;"
-        allowtransparency="true"
-></iframe>
 
 <script>
 // ═════════════════════════════════════════════════════════════════════════════
@@ -527,38 +557,74 @@ function updateTimestampDisplay() {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function renderWeather(data) {
-  const { tempC, precipMM, code, locationName } = data;
+  const { currentTempC, feelsLikeC, tempC, precipMM, code, locationName, sunrise, sunset } = data;
   const condition  = getCondition(code);
   const summary    = getSummary(code);
 
   document.body.className  = condition;
 
-  const displayTemp = useFahrenheit ? cToF(tempC) : Math.round(tempC);
-  const unit        = useFahrenheit ? '°F' : '°C';
-  const hasPrecip   = precipMM > 0;
+  const displayCurrent = useFahrenheit ? cToF(currentTempC) : Math.round(currentTempC);
+  const displayFeelsLike = useFahrenheit ? cToF(feelsLikeC) : Math.round(feelsLikeC);
+  const displayHigh    = useFahrenheit ? cToF(tempC) : Math.round(tempC);
+  const unit           = useFahrenheit ? '°F' : '°C';
+  const hasPrecip      = precipMM > 0;
+
+  // Convert precipitation to match the selected unit system
+  const precipDisplay = useFahrenheit
+    ? (precipMM / 25.4).toFixed(2) + ' in'
+    : precipMM.toFixed(1) + ' mm';
+
+  // Parse "2026-02-22T06:32" → "06:32"
+  const formatTime = iso => iso ? iso.split('T')[1].slice(0, 5) : '--:--';
+  const sunriseTime = formatTime(sunrise);
+  const sunsetTime  = formatTime(sunset);
+
+  // Inline SVG icons for sun and moon
+  const sunIcon = `<img src="images/sunrise.gif" alt="sunrise"
+  style="width:30px; height:30px; object-fit:contain;" />`;
+
+  const moonIcon = `<img src="images/sunset.gif" alt="sunset"
+  style="width:30px; height:30px; object-fit:contain;" />`;
 
   document.getElementById('content').innerHTML = `
     <div class="illustration">${buildIllustration(condition)}</div>
     <div class="temp-row">
-      <span class="temp">${displayTemp}</span>
+      <span class="temp">${displayCurrent}</span>
       <span class="temp-unit">${unit}</span>
     </div>
+    <div class="temp-high">High: ${displayHigh}${unit}</div>
     <div class="summary">${summary}</div>
     <div class="stats">
       <div class="stat">
         <span class="stat-icon">🌡️</span>
-        <span class="stat-value">${displayTemp}${unit}</span>
-        <span class="stat-label">Temp</span>
+        <span class="stat-value">${displayFeelsLike}${unit}</span>
+        <span class="stat-label">Feels Like</span>
       </div>
       <div class="stat">
         <span class="stat-icon">${hasPrecip ? '🌧️' : '✅'}</span>
-        <span class="stat-value">${hasPrecip ? precipMM.toFixed(1) + ' mm' : 'None'}</span>
+        <span class="stat-value">${hasPrecip ? precipDisplay : 'None'}</span>
         <span class="stat-label">Precip</span>
       </div>
       <div class="stat">
         <span class="stat-icon">📍</span>
         <span class="stat-value">${locationName.split(',')[0]}</span>
         <span class="stat-label">City</span>
+      </div>
+    </div>
+    <div class="sun-row">
+      <div class="sun-item">
+        ${sunIcon}
+        <div>
+          <span class="sun-label">Sunrise</span>
+          <span class="sun-time">${sunriseTime}</span>
+        </div>
+      </div>
+      <div class="sun-item">
+        ${moonIcon}
+        <div>
+          <span class="sun-label">Sunset</span>
+          <span class="sun-time">${sunsetTime}</span>
+        </div>
       </div>
     </div>
   `;
@@ -577,15 +643,20 @@ function showError(msg) {
 async function fetchWeather(lat, lon) {
   const url = `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}&longitude=${lon}` +
-    `&daily=temperature_2m_max,precipitation_sum,weathercode` +
+    `&current=temperature_2m,apparent_temperature` +
+    `&daily=temperature_2m_max,precipitation_sum,weathercode,sunrise,sunset` +
     `&timezone=auto&forecast_days=1`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Weather API error');
   const data = await res.json();
   return {
-    tempC:    data.daily.temperature_2m_max[0],
-    precipMM: data.daily.precipitation_sum[0] ?? 0,
-    code:     data.daily.weathercode[0],
+    currentTempC: data.current.temperature_2m,
+    feelsLikeC:   data.current.apparent_temperature,
+    tempC:        data.daily.temperature_2m_max[0],
+    precipMM:     data.daily.precipitation_sum[0] ?? 0,
+    code:         data.daily.weathercode[0],
+    sunrise:      data.daily.sunrise[0],  // e.g. "2026-02-22T06:32"
+    sunset:       data.daily.sunset[0],   // e.g. "2026-02-22T19:45"
   };
 }
 
