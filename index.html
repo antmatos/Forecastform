@@ -203,6 +203,16 @@
       transition: background 0.2s;
     }
     .unit-toggle:hover { background: var(--accent); color: #fff; }
+
+    .last-updated {
+      font-size: 0.72rem;
+      color: var(--soft);
+      font-weight: 600;
+      opacity: 0.7;
+      margin-top: 1rem;
+      min-height: 1em;
+      transition: color 0.5s;
+    }
   </style>
 </head>
 <body>
@@ -220,18 +230,8 @@
   <div id="content">
     <div class="loading">Select a city above to get started.</div>
   </div>
+  <div class="last-updated" id="lastUpdated"></div>
 </div>
-
-<!-- Spotify embed -->
-<iframe
-        src="https://open.spotify.com/embed/album/2x9y5NDF924jWDNtHxKPyx?utm_source=generator&theme=0"
-        width="100%"
-        height="152"
-        frameborder="0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-        style="border-radius: 12px; margin-top: 1.5rem; max-width: 420px; display: block;"
-></iframe>
 
 <script>
 // ═════════════════════════════════════════════════════════════════════════════
@@ -445,6 +445,8 @@ const fallbackImage = 'images/fallback.png';
 // ── State ─────────────────────────────────────────────────────────────────────
 let useFahrenheit = true;
 let weatherData   = null;
+let lastUpdatedAt = null;  // timestamp of last successful fetch
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 function cToF(c) { return Math.round(c * 9/5 + 32); }
 
@@ -500,6 +502,17 @@ function buildIllustration(condition) {
 }
 
 
+// ── Timestamp helpers ─────────────────────────────────────────────────────────
+function updateTimestampDisplay() {
+  const el = document.getElementById('lastUpdated');
+  if (!el || !lastUpdatedAt) return;
+  const mins = Math.floor((Date.now() - lastUpdatedAt) / 60000);
+  if (mins < 1)       el.textContent = 'Updated just now';
+  else if (mins === 1) el.textContent = 'Updated 1 min ago';
+  else                el.textContent = `Updated ${mins} mins ago`;
+}
+
+
 // ── Render ────────────────────────────────────────────────────────────────────
 function renderWeather(data) {
   const { tempC, precipMM, code, locationName } = data;
@@ -537,6 +550,10 @@ function renderWeather(data) {
       </div>
     </div>
   `;
+
+  // Record the time and update the timestamp label
+  lastUpdatedAt = Date.now();
+  updateTimestampDisplay();
 }
 
 function showError(msg) {
@@ -572,20 +589,22 @@ function populateCityDropdown() {
   });
 }
 
-async function loadCity(city) {
+async function loadCity(city, silent = false) {
   LocationProvider.setSelected(city);
 
   document.getElementById('citySelect').value = city.name;
-  document.getElementById('content').innerHTML =
-    `<div class="loading">☁️ Loading weather for ${city.name}…</div>`;
-  document.body.className = '';
+  if (!silent) {
+    document.getElementById('content').innerHTML =
+      `<div class="loading">☁️ Loading weather for ${city.name}…</div>`;
+    document.body.className = '';
+  }
 
   try {
     const weather = await fetchWeather(city.lat, city.lon);
     weatherData   = { ...weather, locationName: city.name };
     renderWeather(weatherData);
   } catch {
-    showError('Could not load weather data. Please try again.');
+    if (!silent) showError('Could not load weather data. Please try again.');
   }
 }
 
@@ -610,6 +629,15 @@ if (savedCityName) {
   const saved = LocationProvider.getCities().find(c => c.name === savedCityName);
   if (saved) loadCity(saved);
 }
+
+// Auto-refresh weather every 30 minutes, silently in the background
+setInterval(() => {
+  const city = LocationProvider.getSelected();
+  if (city) loadCity(city, true);
+}, REFRESH_INTERVAL_MS);
+
+// Tick the "X mins ago" label every minute
+setInterval(updateTimestampDisplay, 60000);
 </script>
 </body>
 </html>
