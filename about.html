@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>About — Today's Weather</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet" />
+    <script>
+        (function() {
+          const bg = localStorage.getItem('customBackground');
+          if (bg) document.documentElement.style.setProperty('--custom-bg', `url('${bg}')`);
+        })();
+      </script>
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,6 +26,10 @@
     body {
       font-family: 'Nunito', sans-serif;
       background: var(--bg);
+      background-image: var(--custom-bg, none);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -240,6 +250,9 @@
         </a>
         <a href="about.html" class="drawer-link active">
             <span class="drawer-link-icon">📖</span> About
+        </a>
+        <a href="settings.html" class="drawer-link active">
+            <span class="drawer-link-icon">⚙️</span> Settings
         </a>
     </nav>
     <div class="drawer-footer">

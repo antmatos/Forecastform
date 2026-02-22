@@ -11,6 +11,12 @@
   <meta name="apple-mobile-web-app-title" content="Weather" />
   <link rel="apple-touch-icon" href="images/icon-192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function() {
+      const bg = localStorage.getItem('customBackground');
+      if (bg) document.documentElement.style.setProperty('--custom-bg', `url('${bg}')`);
+    })();
+  </script>
   <title>Today's Weather</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet" />
   <style>
@@ -28,13 +34,16 @@
     body {
       font-family: 'Nunito', sans-serif;
       background: var(--bg);
+      background-image: var(--custom-bg, none);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
-      transition: background 0.8s ease;
     }
 
     body.sunny         { --bg: #fff8e1; --accent: #f9a825; --soft: #b8860b; }
@@ -564,6 +573,9 @@
     </a>
     <a href="about.html" class="drawer-link">
       <span class="drawer-link-icon">📖</span> About
+    </a>
+    <a href="settings.html" class="drawer-link">
+      <span class="drawer-link-icon">⚙️</span> Settings
     </a>
   </nav>
   <div class="drawer-footer">

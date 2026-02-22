@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings — Today's Weather</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet" />
+    <!-- Restore saved background before paint to avoid flash -->
+    <script>
+    (function() {
+      const bg = localStorage.getItem('customBackground');
+      if (bg) document.documentElement.style.setProperty('--custom-bg', `url('${bg}')`);
+    })();
+  </script>
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #e8f4fd;
+      --card: #ffffff;
+      --accent: #f9a825;
+      --text: #1a2535;
+      --soft: #6b8cae;
+      --radius: 2rem;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      background-image: var(--custom-bg, none);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    /* ── Hamburger ──────────────────────────────────────────────────────────── */
+    .hamburger {
+      position: absolute;
+      top: 1rem; left: 1.2rem;
+      background: var(--bg);
+      border: none;
+      border-radius: 999px;
+      width: 36px; height: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+      z-index: 10;
+    }
+    .hamburger:hover { background: var(--accent); }
+    .hamburger:hover .bar { background: #fff; }
+    .hamburger .bar {
+      width: 16px; height: 2px;
+      background: var(--soft);
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+
+    /* ── Drawer overlay ─────────────────────────────────────────────────────── */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0);
+      z-index: 100;
+      pointer-events: none;
+      transition: background 0.3s ease;
+    }
+    .drawer-overlay.open {
+      background: rgba(0,0,0,0.4);
+      pointer-events: all;
+    }
+
+    /* ── Drawer panel ───────────────────────────────────────────────────────── */
+    .drawer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 260px; height: 100%;
+      background: #fff;
+      z-index: 101;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .drawer-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+    .drawer-subtitle {
+      font-size: 0.72rem;
+      color: var(--soft);
+      font-weight: 600;
+      margin-top: 0.15rem;
+    }
+    .drawer-nav { flex: 1; padding: 0.75rem 0; }
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      transition: background 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .drawer-link:hover { background: var(--bg); }
+    .drawer-link.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: #fff8e1;
+    }
+    .drawer-link-icon { font-size: 1.1rem; }
+    .drawer-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #f0f0f0;
+      font-size: 0.7rem;
+      color: var(--soft);
+      font-weight: 600;
+    }
+
+    /* ── Settings card ──────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
+      animation: rise 0.7s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes rise {
+      from { opacity:0; transform: translateY(30px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 180px; height: 180px;
+      background: var(--accent);
+      opacity: 0.12;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    h1 {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.6rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Background picker grid ─────────────────────────────────────────────── */
+    .bg-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .bg-option {
+      position: relative;
+      cursor: pointer;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      border: 3px solid transparent;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .bg-option:hover { transform: scale(1.03); }
+    .bg-option.selected { border-color: var(--accent); }
+
+    .bg-option-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* "None" option uses a CSS pattern instead of an image */
+    .bg-option.bg-none {
+      background: linear-gradient(135deg, #e8f4fd 50%, #d0e8f8 50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bg-option.bg-none .bg-none-label {
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: var(--soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .bg-option-name {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.55));
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 0.4rem 0.4rem 0.3rem;
+      text-align: center;
+    }
+
+    /* Selected checkmark badge */
+    .bg-option .check {
+      display: none;
+      position: absolute;
+      top: 0.3rem; right: 0.3rem;
+      width: 20px; height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: #fff;
+      font-weight: 900;
+    }
+    .bg-option.selected .check { display: flex; }
+
+    .save-confirm {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #43a047;
+      text-align: center;
+      min-height: 1.2em;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .save-confirm.visible { opacity: 1; }
+
+    .divider {
+      height: 1px;
+      background: #f0f0f0;
+      margin: 1.25rem 0;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: var(--soft);
+      font-weight: 600;
+      line-height: 1.5;
+      background: var(--bg);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+    }
+    .hint code {
+      font-family: monospace;
+      background: #e0e0e0;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="drawer">
+    <div class="drawer-header">
+        <div class="drawer-title">Weather App</div>
+        <div class="drawer-subtitle">Your Pokemon weather companion</div>
+    </div>
+    <nav class="drawer-nav">
+        <a href="index.html" class="drawer-link">
+            <span class="drawer-link-icon">🌤️</span> Weather
+        </a>
+        <a href="about.html" class="drawer-link">
+            <span class="drawer-link-icon">📖</span> About
+        </a>
+        <a href="settings.html" class="drawer-link active">
+            <span class="drawer-link-icon">⚙️</span> Settings
+        </a>
+    </nav>
+    <div class="drawer-footer">
+        Built with Open-Meteo · No API key needed
+    </div>
+</div>
+
+<div class="card">
+    <button class="hamburger" onclick="openDrawer()" aria-label="Open menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </button>
+
+    <h1>Settings</h1>
+
+    <div class="section-label">Background Image</div>
+
+<!--    <div class="bg-grid" id="bgGrid">-->
+<!--        &lt;!&ndash; Populated by JS from backgroundOptions below &ndash;&gt;-->
+<!--    </div>-->
+
+    <div class="save-confirm" id="saveConfirm">✅ Background saved!</div>
+
+    <div class="divider"></div>
+
+<!--    <div class="hint">-->
+<!--        Add your background images to the <code>images/</code> folder in your repo,-->
+<!--        then add an entry to the <code>backgroundOptions</code> array in-->
+<!--        <code>settings.html</code>. Any image format works — <code>.jpg</code>,-->
+<!--        <code>.png</code>, <code>.webp</code>.-->
+<!--    </div>-->
+</div>
+
+<script>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BACKGROUND OPTIONS
+  // Add or remove entries here to change what appears in the picker.
+  // src: null means "no background" (use default weather color).
+  // src: 'images/your-file.jpg' points to a file in your images/ folder.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const backgroundOptions = [
+    { id: 'none',        label: 'Default',     src: null },
+    { id: 'bg-forest',   label: 'Forest',      src: 'images/bg-forest.jpg' },
+    { id: 'bg-mountain', label: 'Mountains',   src: 'images/bg-mountain.jpg' },
+    { id: 'bg-ocean',    label: 'Ocean',       src: 'images/bg-ocean.jpg' },
+    { id: 'bg-city',     label: 'City',        src: 'images/bg-city.jpg' },
+    { id: 'bg-space',    label: 'Space',       src: 'images/bg-space.jpg' },
+  ];
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const STORAGE_KEY = 'customBackground';
+  let selectedId = null;
+
+  // Read currently saved background
+  const savedSrc = localStorage.getItem(STORAGE_KEY);
+  const savedOption = backgroundOptions.find(o => o.src === savedSrc) || backgroundOptions[0];
+  selectedId = savedOption.id;
+
+  // Build the picker grid
+  function buildGrid() {
+    const grid = document.getElementById('bgGrid');
+    grid.innerHTML = '';
+
+    backgroundOptions.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'bg-option' +
+        (opt.src === null ? ' bg-none' : '') +
+        (opt.id === selectedId ? ' selected' : '');
+      div.dataset.id = opt.id;
+      div.onclick = () => selectBackground(opt);
+
+      if (opt.src === null) {
+        div.innerHTML = `
+          <span class="bg-none-label">Default</span>
+          <div class="check">✓</div>`;
+      } else {
+        div.innerHTML = `
+          <img class="bg-option-thumb" src="${opt.src}" alt="${opt.label}"
+            onerror="this.parentElement.style.background='#eee'; this.style.display='none';" />
+          <div class="bg-option-name">${opt.label}</div>
+          <div class="check">✓</div>`;
+      }
+
+      grid.appendChild(div);
+    });
+  }
+
+  function selectBackground(opt) {
+    selectedId = opt.id;
+
+    // Update grid selection state
+    document.querySelectorAll('.bg-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.id === opt.id);
+    });
+
+    // Save to localStorage
+    if (opt.src === null) {
+      localStorage.removeItem(STORAGE_KEY);
+      document.documentElement.style.removeProperty('--custom-bg');
+    } else {
+      localStorage.setItem(STORAGE_KEY, opt.src);
+      document.documentElement.style.setProperty('--custom-bg', `url('${opt.src}')`);
+    }
+
+    // Apply immediately to this page's body
+    document.body.style.backgroundImage = opt.src ? `url('${opt.src}')` : '';
+
+    // Show confirmation
+    const confirm = document.getElementById('saveConfirm');
+    confirm.classList.add('visible');
+    setTimeout(() => confirm.classList.remove('visible'), 2500);
+  }
+
+  // ── Drawer ──────────────────────────────────────────────────────────────────
+  function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  buildGrid();
+</script>
+</body>
+</html>
