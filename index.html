@@ -437,11 +437,146 @@
       color: #6b8cae;
       cursor: pointer;
     }
+
+    /* ── Hamburger button ───────────────────────────────────────────────────── */
+    .hamburger {
+      position: absolute;
+      top: 1rem;
+      left: 1.2rem;
+      background: var(--bg);
+      border: none;
+      border-radius: 999px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+      z-index: 10;
+    }
+    .hamburger:hover { background: var(--accent); }
+    .hamburger:hover .bar { background: #fff; }
+    .hamburger .bar {
+      width: 16px;
+      height: 2px;
+      background: var(--soft);
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+
+    /* ── Drawer overlay ─────────────────────────────────────────────────────── */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0);
+      z-index: 100;
+      pointer-events: none;
+      transition: background 0.3s ease;
+    }
+    .drawer-overlay.open {
+      background: rgba(0,0,0,0.4);
+      pointer-events: all;
+    }
+
+    /* ── Drawer panel ───────────────────────────────────────────────────────── */
+    .drawer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 260px;
+      height: 100%;
+      background: #fff;
+      z-index: 101;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .drawer-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+    .drawer-subtitle {
+      font-size: 0.72rem;
+      color: var(--soft);
+      font-weight: 600;
+      margin-top: 0.15rem;
+    }
+
+    .drawer-nav {
+      flex: 1;
+      padding: 0.75rem 0;
+    }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      transition: background 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .drawer-link:hover {
+      background: var(--bg);
+    }
+    .drawer-link.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: #fff8e1;
+    }
+    .drawer-link-icon { font-size: 1.1rem; }
+
+    .drawer-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #f0f0f0;
+      font-size: 0.7rem;
+      color: var(--soft);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
 
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">Weather App</div>
+    <div class="drawer-subtitle">Your Pokemon weather companion</div>
+  </div>
+  <nav class="drawer-nav">
+    <a href="index.html" class="drawer-link active">
+      <span class="drawer-link-icon">🌤️</span> Weather
+    </a>
+    <a href="about.html" class="drawer-link">
+      <span class="drawer-link-icon">📖</span> About
+    </a>
+  </nav>
+  <div class="drawer-footer">
+    Built with Open-Meteo · No API key needed
+  </div>
+</div>
+
 <div class="card">
+  <button class="hamburger" onclick="openDrawer()" aria-label="Open menu">
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+  </button>
   <button class="unit-toggle" onclick="toggleUnit()">°F / °C</button>
   <h1>Today's Weather</h1>
 
@@ -950,6 +1085,24 @@ function closeInstallModal(e) {
     document.getElementById('installOverlay').classList.remove('open');
   }
 }
+
+// ── Drawer ────────────────────────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden'; // prevent background scroll
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close drawer on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDrawer();
+});
 </script>
 
 <div class="install-modal-overlay" id="installOverlay" onclick="closeInstallModal(event)">
