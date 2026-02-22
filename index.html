@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Web app manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iOS-specific meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Weather" />
+  <link rel="apple-touch-icon" href="images/icon-192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Today's Weather</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet" />
@@ -255,6 +263,110 @@
       min-height: 1em;
       transition: color 0.5s;
     }
+
+    .install-btn {
+      display: none;        /* hidden by default, shown by JS when on iOS */
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      background: none;
+      border: 2px solid var(--accent);
+      border-radius: 999px;
+      padding: 0.5rem 1.2rem;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--accent);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .install-btn:hover { background: var(--accent); color: #fff; }
+
+    .install-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .install-modal-overlay.open { display: flex; }
+
+    .install-modal {
+      background: #fff;
+      border-radius: 1.5rem;
+      padding: 1.75rem 1.5rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.15);
+      animation: slideUp 0.3s cubic-bezier(.22,1,.36,1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .install-modal h2 {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #1a2535;
+      margin-bottom: 0.35rem;
+    }
+
+    .install-modal p {
+      font-size: 0.85rem;
+      color: #6b8cae;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+    }
+
+    .install-steps {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .install-step {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1a2535;
+    }
+
+    .install-step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #f9a825;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .install-close {
+      background: #f5f5f5;
+      border: none;
+      border-radius: 999px;
+      padding: 0.5rem 1.5rem;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #6b8cae;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -271,6 +383,9 @@
 
   <div id="content">
     <div class="loading">Select a city above to get started.</div>
+    <button class="install-btn" id="installBtn" onclick="openInstallModal()">
+      📲 Add to Home Screen
+    </button>
   </div>
   <div class="last-updated" id="lastUpdated"></div>
 </div>
@@ -721,6 +836,55 @@ setInterval(() => {
 
 // Tick the "X mins ago" label every minute
 setInterval(updateTimestampDisplay, 60000);
+
+// ── iOS install prompt ────────────────────────────────────────────────────────
+// Only show the button on iOS Safari — other platforms handle this differently
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isInStandaloneMode() {
+  return window.navigator.standalone === true;
+}
+
+// Show button only on iOS Safari when not already installed
+if (isIOS() && !isInStandaloneMode()) {
+  document.getElementById('installBtn').style.display = 'flex';
+}
+
+function openInstallModal() {
+  document.getElementById('installOverlay').classList.add('open');
+}
+
+function closeInstallModal(e) {
+  // Close if clicking the overlay backdrop, or the close button directly
+  if (!e || e.target === document.getElementById('installOverlay')) {
+    document.getElementById('installOverlay').classList.remove('open');
+  }
+}
 </script>
+
+<div class="install-modal-overlay" id="installOverlay" onclick="closeInstallModal(event)">
+  <div class="install-modal">
+    <h2>Add to Home Screen</h2>
+    <p>Install this app for quick access to your weather — no App Store needed.</p>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        Tap the <strong>Share button</strong> (the box with an arrow) at the bottom of Safari
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        Scroll down and tap <strong>"Add to Home Screen"</strong>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        Tap <strong>"Add"</strong> in the top right corner
+      </div>
+    </div>
+    <button class="install-close" onclick="closeInstallModal()">Got it</button>
+  </div>
+</div>
+
 </body>
 </html>
