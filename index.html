@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Today's Weather</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #e8f4fd;
+      --card: #ffffff;
+      --accent: #f9a825;
+      --text: #1a2535;
+      --soft: #6b8cae;
+      --radius: 2rem;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      transition: background 0.8s ease;
+    }
+
+    body.sunny         { --bg: #fff8e1; --accent: #f9a825; --soft: #b8860b; }
+    body.partlycloudy  { --bg: #fff8e1; --accent: #f9a825; --soft: #b8860b; }
+    body.cloudy        { --bg: #eceff1; --accent: #90a4ae; --soft: #546e7a; }
+    body.rainy         { --bg: #e3f2fd; --accent: #1976d2; --soft: #5b87a8; }
+    body.snowy         { --bg: #e8f5e9; --accent: #4fc3f7; --soft: #81a9c4; }
+    body.stormy        { --bg: #212121; --accent: #ffd600; --soft: #aaaaaa; --card: #2e2e2e; --text: #f0f0f0; }
+    body.foggy         { --bg: #f5f5f5; --accent: #b0bec5; --soft: #78909c; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem 2rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      text-align: center;
+      animation: rise 0.7s cubic-bezier(.22,1,.36,1) both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @keyframes rise {
+      from { opacity:0; transform: translateY(30px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 180px; height: 180px;
+      background: var(--accent);
+      opacity: 0.12;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    h1 {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.6rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    /* City picker */
+    .city-select-wrap {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .city-select-wrap select {
+      width: 100%;
+      padding: 0.6rem 2.2rem 0.6rem 1rem;
+      border-radius: 999px;
+      border: 2px solid var(--accent);
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      transition: border-color 0.2s, background 0.4s;
+    }
+
+    .city-select-wrap select:focus { border-color: var(--soft); }
+
+    .city-select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+      font-size: 1rem;
+    }
+
+    /* Illustration */
+    .illustration {
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .illus-wrap {
+      width: 180px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .illus-img {
+      max-width: 180px;
+      max-height: 180px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 1rem;
+      display: block;
+    }
+
+    /* Hidden by default; shown only when both images fail */
+    .illus-svg {
+      width: 180px;
+      height: 180px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .illus-svg svg,
+    .illustration svg { width: 180px; height: 180px; }
+
+    .temp-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .temp { font-size: 5rem; font-weight: 900; color: var(--text); line-height: 1; }
+    .temp-unit { font-size: 1.4rem; color: var(--soft); font-weight: 700; margin-top: 0.6rem; }
+
+    .summary {
+      font-size: 1.1rem;
+      color: var(--soft);
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      background: var(--bg);
+      border-radius: 1.2rem;
+      padding: 1rem 1.5rem;
+      transition: background 0.4s;
+    }
+
+    .stat { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+    .stat-icon  { font-size: 1.4rem; }
+    .stat-value { font-size: 1rem; font-weight: 800; color: var(--text); }
+    .stat-label { font-size: 0.7rem; color: var(--soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .loading, .error { font-size: 1rem; color: var(--soft); font-weight: 600; padding: 2rem 0; }
+    .error { color: #e53935; }
+
+    .unit-toggle {
+      position: absolute;
+      top: 1rem; right: 1.2rem;
+      background: var(--bg);
+      border: none;
+      border-radius: 999px;
+      padding: 0.3rem 0.75rem;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--soft);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .unit-toggle:hover { background: var(--accent); color: #fff; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <button class="unit-toggle" onclick="toggleUnit()">°F / °C</button>
+  <h1>Today's Weather</h1>
+
+  <div class="city-select-wrap">
+    <select id="citySelect" onchange="onCityChange()">
+      <option value="" disabled selected>Select a city…</option>
+    </select>
+  </div>
+
+  <div id="content">
+    <div class="loading">Select a city above to get started.</div>
+  </div>
+</div>
+
+<!-- Spotify embed -->
+<iframe
+        src="https://open.spotify.com/embed/album/2x9y5NDF924jWDNtHxKPyx?utm_source=generator&theme=0"
+        width="100%"
+        height="152"
+        frameborder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        style="border-radius: 12px; margin-top: 1.5rem; max-width: 420px; display: block;"
+></iframe>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// LOCATION PROVIDER
+// ─────────────────────────────────────────────────────────────────────────────
+// This is the single interface between the app and "where is the user?"
+// To switch location sources later, only replace this block.
+//
+// The rest of the app always uses:
+//   LocationProvider.getCities()       → [{ name, lat, lon }, ...]
+//   LocationProvider.getSelected()     → { name, lat, lon } | null
+//   LocationProvider.setSelected(city) → void
+//
+// CURRENT SOURCE: Hardcoded list of major US cities (no API calls).
+// ─────────────────────────────────────────────────────────────────────────────
+const LocationProvider = (() => {
+
+  // To add or remove cities, edit this list. That is all.
+  const CITIES = [
+    { name: 'Albuquerque, NM',   lat: 35.0844,  lon: -106.6504 },
+    { name: 'Anchorage, AK',     lat: 61.2181,  lon: -149.9003 },
+    { name: 'Arlington, TX',     lat: 32.7357,  lon: -97.1081  },
+    { name: 'Atlanta, GA',       lat: 33.7490,  lon: -84.3880  },
+    { name: 'Aurora, CO',        lat: 39.7294,  lon: -104.8319 },
+    { name: 'Austin, TX',        lat: 30.2672,  lon: -97.7431  },
+    { name: 'Bakersfield, CA',   lat: 35.3733,  lon: -119.0187 },
+    { name: 'Baltimore, MD',     lat: 39.2904,  lon: -76.6122  },
+    { name: 'Charlotte, NC',     lat: 35.2271,  lon: -80.8431  },
+    { name: 'Chicago, IL',       lat: 41.8781,  lon: -87.6298  },
+    { name: 'Cleveland, OH',     lat: 41.4993,  lon: -81.6944  },
+    { name: 'Colorado Springs',  lat: 38.8339,  lon: -104.8214 },
+    { name: 'Columbus, OH',      lat: 39.9612,  lon: -82.9988  },
+    { name: 'Dallas, TX',        lat: 32.7767,  lon: -96.7970  },
+    { name: 'Denver, CO',        lat: 39.7392,  lon: -104.9903 },
+    { name: 'El Paso, TX',       lat: 31.7619,  lon: -106.4850 },
+    { name: 'Fort Worth, TX',    lat: 32.7555,  lon: -97.3308  },
+    { name: 'Fresno, CA',        lat: 36.7378,  lon: -119.7871 },
+    { name: 'Honolulu, HI',      lat: 21.3069,  lon: -157.8583 },
+    { name: 'Houston, TX',       lat: 29.7604,  lon: -95.3698  },
+    { name: 'Indianapolis, IN',  lat: 39.7684,  lon: -86.1581  },
+    { name: 'Jacksonville, FL',  lat: 30.3322,  lon: -81.6557  },
+    { name: 'Kansas City, MO',   lat: 39.0997,  lon: -94.5786  },
+    { name: 'Las Vegas, NV',     lat: 36.1699,  lon: -115.1398 },
+    { name: 'Los Angeles, CA',   lat: 34.0522,  lon: -118.2437 },
+    { name: 'Louisville, KY',    lat: 38.2527,  lon: -85.7585  },
+    { name: 'Memphis, TN',       lat: 35.1495,  lon: -90.0490  },
+    { name: 'Mesa, AZ',          lat: 33.4152,  lon: -111.8315 },
+    { name: 'Miami, FL',         lat: 25.7617,  lon: -80.1918  },
+    { name: 'Milwaukee, WI',     lat: 43.0389,  lon: -87.9065  },
+    { name: 'Minneapolis, MN',   lat: 44.9778,  lon: -93.2650  },
+    { name: 'Nashville, TN',     lat: 36.1627,  lon: -86.7816  },
+    { name: 'New Orleans, LA',   lat: 29.9511,  lon: -90.0715  },
+    { name: 'New York, NY',      lat: 40.7128,  lon: -74.0060  },
+    { name: 'Oklahoma City, OK', lat: 35.4676,  lon: -97.5164  },
+    { name: 'Omaha, NE',         lat: 41.2565,  lon: -95.9345  },
+    { name: 'Philadelphia, PA',  lat: 39.9526,  lon: -75.1652  },
+    { name: 'Phoenix, AZ',       lat: 33.4484,  lon: -112.0740 },
+    { name: 'Portland, OR',      lat: 45.5051,  lon: -122.6750 },
+    { name: 'Raleigh, NC',       lat: 35.7796,  lon: -78.6382  },
+    { name: 'Sacramento, CA',    lat: 38.5816,  lon: -121.4944 },
+    { name: 'San Antonio, TX',   lat: 29.4241,  lon: -98.4936  },
+    { name: 'San Diego, CA',     lat: 32.7157,  lon: -117.1611 },
+    { name: 'San Francisco, CA', lat: 37.7749,  lon: -122.4194 },
+    { name: 'San Jose, CA',      lat: 37.3382,  lon: -121.8863 },
+    { name: 'Seattle, WA',       lat: 47.6062,  lon: -122.3321 },
+    { name: 'Tampa, FL',         lat: 27.9506,  lon: -82.4572  },
+    { name: 'Tucson, AZ',        lat: 32.2226,  lon: -110.9747 },
+    { name: 'Washington, DC',    lat: 38.9072,  lon: -77.0369  },
+    { name: 'Wichita, KS',       lat: 37.6872,  lon: -97.3301  },
+  ];
+
+  let _selected = null;
+
+  return {
+    getCities()          { return CITIES; },
+    getSelected()        { return _selected; },
+    setSelected(city)    { _selected = city; },
+  };
+})();
+// ─────────────────────────────────────────────────────────────────────────────
+// Everything below this line is pure app logic.
+// It only calls LocationProvider — never a specific data source directly.
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── WMO weather code helpers ──────────────────────────────────────────────────
+function getCondition(code) {
+  if (code === 0)                                                 return 'sunny';
+  if (code <= 2)                                                  return 'partlycloudy';
+  if (code === 3)                                                 return 'cloudy';
+  if ([45,48].includes(code))                                     return 'foggy';
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code))  return 'rainy';
+  if ([71,73,75,77,85,86].includes(code))                        return 'snowy';
+  if ([95,96,99].includes(code))                                  return 'stormy';
+  return 'cloudy';
+}
+
+function getSummary(code) {
+  const map = {
+    0:'Clear Sky', 1:'Mostly Clear', 2:'Partly Cloudy', 3:'Overcast',
+    45:'Foggy', 48:'Foggy',
+    51:'Light Drizzle', 53:'Drizzle', 55:'Heavy Drizzle',
+    56:'Freezing Drizzle', 57:'Heavy Freezing Drizzle',
+    61:'Light Rain', 63:'Rain', 65:'Heavy Rain',
+    66:'Freezing Rain', 67:'Heavy Freezing Rain',
+    71:'Light Snow', 73:'Snow', 75:'Heavy Snow', 77:'Snow Grains',
+    80:'Light Showers', 81:'Showers', 82:'Heavy Showers',
+    85:'Snow Showers', 86:'Heavy Snow Showers',
+    95:'Thunderstorm', 96:'Thunderstorm w/ Hail', 99:'Severe Thunderstorm',
+  };
+  return map[code] || 'Cloudy';
+}
+
+
+// ── SVG illustrations (last-resort fallback) ──────────────────────────────────
+const illustrations = {
+  sunny: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="90" cy="90" r="38" fill="#f9a825"/>
+    <g stroke="#f9a825" stroke-width="5" stroke-linecap="round">
+      <line x1="90" y1="20" x2="90" y2="36"/><line x1="90" y1="144" x2="90" y2="160"/>
+      <line x1="20" y1="90" x2="36" y2="90"/><line x1="144" y1="90" x2="160" y2="90"/>
+      <line x1="38" y1="38" x2="49" y2="49"/><line x1="131" y1="131" x2="142" y2="142"/>
+      <line x1="142" y1="38" x2="131" y2="49"/><line x1="49" y1="131" x2="38" y2="142"/>
+    </g>
+    <circle cx="90" cy="90" r="28" fill="#ffd54f"/>
+    <circle cx="82" cy="86" r="3" fill="#e65100"/><circle cx="98" cy="86" r="3" fill="#e65100"/>
+    <path d="M81 97 Q90 104 99 97" stroke="#e65100" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  partlycloudy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="70" cy="80" r="28" fill="#ffd54f"/>
+    <g stroke="#ffd54f" stroke-width="4" stroke-linecap="round">
+      <line x1="70" y1="30" x2="70" y2="44"/><line x1="20" y1="80" x2="34" y2="80"/>
+      <line x1="34" y1="44" x2="44" y2="54"/><line x1="106" y1="44" x2="96" y2="54"/>
+    </g>
+    <ellipse cx="105" cy="108" rx="42" ry="26" fill="#cfd8dc"/>
+    <ellipse cx="80" cy="114" rx="30" ry="22" fill="#eceff1"/>
+    <ellipse cx="118" cy="114" rx="26" ry="20" fill="#eceff1"/>
+    <ellipse cx="99" cy="106" rx="40" ry="24" fill="#fff"/>
+  </svg>`,
+  cloudy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="105" rx="52" ry="30" fill="#b0bec5"/>
+    <ellipse cx="70" cy="112" rx="36" ry="26" fill="#cfd8dc"/>
+    <ellipse cx="118" cy="112" rx="32" ry="24" fill="#cfd8dc"/>
+    <ellipse cx="95" cy="100" rx="50" ry="28" fill="#eceff1"/>
+    <ellipse cx="68" cy="108" rx="34" ry="24" fill="#f5f5f5"/>
+    <ellipse cx="115" cy="108" rx="30" ry="22" fill="#f5f5f5"/>
+  </svg>`,
+  foggy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="90" cy="70" rx="55" ry="26" fill="#cfd8dc" opacity="0.7"/>
+    <rect x="20" y="100" width="140" height="8" rx="4" fill="#b0bec5" opacity="0.6"/>
+    <rect x="30" y="118" width="120" height="7" rx="4" fill="#90a4ae" opacity="0.5"/>
+    <rect x="40" y="135" width="100" height="6" rx="3" fill="#78909c" opacity="0.4"/>
+  </svg>`,
+  rainy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="80" rx="52" ry="28" fill="#90a4ae"/>
+    <ellipse cx="70" cy="88" rx="36" ry="24" fill="#b0bec5"/>
+    <ellipse cx="115" cy="88" rx="32" ry="22" fill="#b0bec5"/>
+    <ellipse cx="95" cy="76" rx="50" ry="26" fill="#cfd8dc"/>
+    <g fill="#1976d2" opacity="0.7">
+      <ellipse cx="62" cy="122" rx="4" ry="8"/><ellipse cx="80" cy="132" rx="4" ry="8"/>
+      <ellipse cx="98" cy="120" rx="4" ry="8"/><ellipse cx="116" cy="133" rx="4" ry="8"/>
+      <ellipse cx="134" cy="122" rx="4" ry="8"/><ellipse cx="71" cy="146" rx="4" ry="8"/>
+      <ellipse cx="107" cy="148" rx="4" ry="8"/>
+    </g>
+  </svg>`,
+  snowy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="78" rx="52" ry="28" fill="#cfd8dc"/>
+    <ellipse cx="70" cy="86" rx="36" ry="24" fill="#eceff1"/>
+    <ellipse cx="115" cy="86" rx="32" ry="22" fill="#eceff1"/>
+    <ellipse cx="95" cy="74" rx="50" ry="26" fill="#fff"/>
+    <g fill="#4fc3f7" font-size="20" text-anchor="middle" font-family="sans-serif">
+      <text x="62" y="126">❄</text><text x="90" y="138">❄</text>
+      <text x="118" y="124">❄</text><text x="76" y="152">❄</text><text x="104" y="154">❄</text>
+    </g>
+  </svg>`,
+  stormy: `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="72" rx="60" ry="32" fill="#37474f"/>
+    <ellipse cx="68" cy="82" rx="40" ry="28" fill="#455a64"/>
+    <ellipse cx="118" cy="82" rx="36" ry="24" fill="#455a64"/>
+    <ellipse cx="95" cy="68" rx="58" ry="30" fill="#546e7a"/>
+    <polygon points="102,90 88,118 98,118 84,150 116,112 103,112 118,90" fill="#ffd600"/>
+    <g fill="#64b5f6" opacity="0.5">
+      <ellipse cx="55" cy="115" rx="3" ry="7"/><ellipse cx="140" cy="112" rx="3" ry="7"/>
+      <ellipse cx="62" cy="135" rx="3" ry="7"/><ellipse cx="130" cy="138" rx="3" ry="7"/>
+    </g>
+  </svg>`,
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE CONFIGURATION
+// ─────────────────────────────────────────────────────────────────────────────
+// Load order per condition:
+//   1. customImages[condition]  → your specific image file
+//   2. fallbackImage            → your backup image (set null to skip)
+//   3. SVG illustration         → always available, no files needed
+//
+const customImages = {
+  sunny:        'images/sunny.png',
+  partlycloudy: 'images/sunny.png',
+  cloudy:       'images/cloudy.png',
+  rainy:        'images/rainy.png',
+  snowy:        'images/snowy.png',
+};
+
+const fallbackImage = 'images/fallback.png';
+// const fallbackImage = null; // uncomment to fall straight through to SVG
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let useFahrenheit = true;
+let weatherData   = null;
+
+function cToF(c) { return Math.round(c * 9/5 + 32); }
+
+function toggleUnit() {
+  useFahrenheit = !useFahrenheit;
+  if (weatherData) renderWeather(weatherData);
+}
+
+
+// ── Image error handler (called by onerror on illustration <img> tags) ────────
+// Keeps all fallback logic in JS — no strings embedded in HTML attributes.
+function handleImgError(img) {
+  const triedBackup = img.dataset.triedBackup === 'true';
+  const backup      = img.dataset.backup;
+
+  if (!triedBackup && backup) {
+    // First failure: swap to the backup image and try once more
+    img.dataset.triedBackup = 'true';
+    img.src = backup;
+  } else {
+    // Both images failed: hide the <img>, reveal the sibling SVG <div>
+    img.style.display = 'none';
+    const svgDiv = img.nextElementSibling;
+    if (svgDiv) svgDiv.style.display = 'flex';
+  }
+}
+
+
+// ── Illustration builder ──────────────────────────────────────────────────────
+// Produces either a plain SVG (no images configured) or a
+// <div class="illus-wrap"> containing an <img> + a hidden SVG fallback.
+// No SVG markup is ever embedded inside an HTML attribute string.
+function buildIllustration(condition) {
+  const svgHTML = illustrations[condition] || illustrations.cloudy;
+  const primary = customImages[condition] || null;
+  const backup  = fallbackImage || null;
+
+  // No images configured at all — render SVG directly
+  if (!primary && !backup) return svgHTML;
+
+  return `
+    <div class="illus-wrap">
+      <img class="illus-img"
+        src="${primary || backup}"
+        alt="${condition}"
+        data-primary="${primary || ''}"
+        data-backup="${backup || ''}"
+        data-tried-backup="false"
+        onerror="handleImgError(this)"
+      />
+      <div class="illus-svg">${svgHTML}</div>
+    </div>`;
+}
+
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderWeather(data) {
+  const { tempC, precipMM, code, locationName } = data;
+  const condition  = getCondition(code);
+  const summary    = getSummary(code);
+
+  document.body.className  = condition;
+
+  const displayTemp = useFahrenheit ? cToF(tempC) : Math.round(tempC);
+  const unit        = useFahrenheit ? '°F' : '°C';
+  const hasPrecip   = precipMM > 0;
+
+  document.getElementById('content').innerHTML = `
+    <div class="illustration">${buildIllustration(condition)}</div>
+    <div class="temp-row">
+      <span class="temp">${displayTemp}</span>
+      <span class="temp-unit">${unit}</span>
+    </div>
+    <div class="summary">${summary}</div>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-icon">🌡️</span>
+        <span class="stat-value">${displayTemp}${unit}</span>
+        <span class="stat-label">Temp</span>
+      </div>
+      <div class="stat">
+        <span class="stat-icon">${hasPrecip ? '🌧️' : '✅'}</span>
+        <span class="stat-value">${hasPrecip ? precipMM.toFixed(1) + ' mm' : 'None'}</span>
+        <span class="stat-label">Precip</span>
+      </div>
+      <div class="stat">
+        <span class="stat-icon">📍</span>
+        <span class="stat-value">${locationName.split(',')[0]}</span>
+        <span class="stat-label">City</span>
+      </div>
+    </div>
+  `;
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML = `<div class="error">⚠️ ${msg}</div>`;
+}
+
+
+// ── Weather fetch ─────────────────────────────────────────────────────────────
+async function fetchWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,precipitation_sum,weathercode` +
+    `&timezone=auto&forecast_days=1`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Weather API error');
+  const data = await res.json();
+  return {
+    tempC:    data.daily.temperature_2m_max[0],
+    precipMM: data.daily.precipitation_sum[0] ?? 0,
+    code:     data.daily.weathercode[0],
+  };
+}
+
+
+// ── City dropdown ─────────────────────────────────────────────────────────────
+function populateCityDropdown() {
+  const select = document.getElementById('citySelect');
+  LocationProvider.getCities().forEach(city => {
+    const opt = document.createElement('option');
+    opt.value       = city.name;
+    opt.textContent = city.name;
+    select.appendChild(opt);
+  });
+}
+
+async function loadCity(city) {
+  LocationProvider.setSelected(city);
+
+  document.getElementById('citySelect').value = city.name;
+  document.getElementById('content').innerHTML =
+    `<div class="loading">☁️ Loading weather for ${city.name}…</div>`;
+  document.body.className = '';
+
+  try {
+    const weather = await fetchWeather(city.lat, city.lon);
+    weatherData   = { ...weather, locationName: city.name };
+    renderWeather(weatherData);
+  } catch {
+    showError('Could not load weather data. Please try again.');
+  }
+}
+
+async function onCityChange() {
+  const select = document.getElementById('citySelect');
+  const chosen = LocationProvider.getCities().find(c => c.name === select.value);
+  if (!chosen) return;
+
+  // Remember this city for next visit
+  localStorage.setItem('selectedCity', chosen.name);
+
+  await loadCity(chosen);
+}
+
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+populateCityDropdown();
+
+// Restore previously selected city if one was saved
+const savedCityName = localStorage.getItem('selectedCity');
+if (savedCityName) {
+  const saved = LocationProvider.getCities().find(c => c.name === savedCityName);
+  if (saved) loadCity(saved);
+}
+</script>
+</body>
+</html>
